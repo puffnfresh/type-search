@@ -11,7 +11,7 @@ import Hedgehog.Main (defaultMain)
 import Search (Search (Search), SearchLimit (SearchLimit), runSearch)
 import Search.Hoogle (hoogle, hoogleFingerprint)
 import qualified Search.Structured as S
-import qualified Streamly.Prelude as Stream
+import Streamly.Data.Stream (toList)
 
 main :: IO ()
 main =
@@ -42,7 +42,7 @@ propertyExampleHoogle =
           hoogleFingerprint popularity
         popularity _ =
           maxBound
-    runWriter (Stream.toList (runSearch (hoogle popularity) database (fingerprint example) example))
+    runWriter (toList (runSearch (hoogle popularity) database (fingerprint example) example))
       === ( [ ( S.Signature
                   ( S.SignatureTypeConstructor "Int" []
                       :| [S.SignatureTypeConstructor "String" []]

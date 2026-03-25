@@ -13,7 +13,7 @@ library
                      , lens
                      , transformers
                      , containers
-                     , streamly
+                     , streamly-core
                      , exceptions
                      , equivalence
                      , prettyprinter
@@ -27,7 +27,7 @@ test-suite type-search-tests
   build-depends:       type-search
                      , base
                      , hedgehog
-                     , streamly
+                     , streamly-core
                      , transformers
                      , containers
   main-is:             Main.hs

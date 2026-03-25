@@ -32,9 +32,9 @@ import Data.Set (Set, (\\))
 import qualified Data.Set as Set
 import Data.Word (Word8)
 import Search (Search (Search), SearchLimit)
-import Streamly.Internal.Data.Stream.IsStream (hoist)
-import Streamly.Prelude (SerialT)
-import qualified Streamly.Prelude as Stream
+import Streamly.Data.Stream (Stream, fromEffect, fromPure)
+import Streamly.Internal.Data.Stream (Nested (Nested, unNested))
+import qualified Streamly.Internal.Data.Stream as Stream
 
 data Fingerprint a
   = Fingerprint [a] Word8 Word8
@@ -60,15 +60,15 @@ data FingerprintRareCost a
   = FingerprintRareCost (Set a) (Set a)
   deriving (Eq, Ord, Show)
 
-emptyEffect :: Monad m => m a -> SerialT m b
+emptyEffect :: Monad m => m a -> Stream m b
 emptyEffect =
-  Stream.concatMap Stream.fromList . Stream.fromEffect . fmap (const [])
+  Stream.concatMap (const Stream.nil) . fromEffect
 
-structuredMatchFingerprint :: Ord a => Fingerprint a -> Fingerprint a -> SerialT (Writer [SearchLog a n]) (FingerprintCost a)
+structuredMatchFingerprint :: Ord a => Fingerprint a -> Fingerprint a -> Stream (Writer [SearchLog a n]) (FingerprintCost a)
 structuredMatchFingerprint (Fingerprint tr tt ta) candidate@(Fingerprint cr ct ca) =
   either
     (emptyEffect . tell . (: []) . SearchLogFingerprintError candidate)
-    pure
+    fromPure
     (liftA2 (\a t -> FingerprintCost a t rarity) arity terms)
   where
     arity =
@@ -174,9 +174,9 @@ newtype SignatureCost
   = SignatureCost SignatureUnificationCost
   deriving (Eq, Ord, Show)
 
-structuredMatchSignature :: Ord n => Signature n -> Signature n -> SerialT (Writer [SearchLog a n]) SignatureCost
-structuredMatchSignature (Signature queryTypes) signature@(Signature signatureTypes) = do
-  equivalenceCost <- hoist (mapWriter ((fmap . fmap) (SearchLogSignatureError signature))) (unifyTypes (signatureFunction queryTypes) (signatureFunction signatureTypes))
+structuredMatchSignature :: Ord n => Signature n -> Signature n -> Stream (Writer [SearchLog a n]) SignatureCost
+structuredMatchSignature (Signature queryTypes) signature@(Signature signatureTypes) = unNested $ do
+  equivalenceCost <- Nested (Stream.morphInner (mapWriter ((fmap . fmap) (SearchLogSignatureError signature))) (unifyTypes (signatureFunction queryTypes) (signatureFunction signatureTypes)))
   -- TODO: Add support for contexts
   pure (SignatureCost (SignatureUnificationCost equivalenceCost))
 
@@ -185,9 +185,9 @@ data TypeDescription n
   | TypeVariable n
   deriving (Eq, Ord, Show)
 
-unifyTypes :: (Ord n) => SignatureType n -> SignatureType n -> SerialT (Writer [SignatureError]) Word8
+unifyTypes :: (Ord n) => SignatureType n -> SignatureType n -> Stream (Writer [SignatureError]) Word8
 unifyTypes x y =
-  getSum <$> runEquivT id preferConstructor (go x y)
+  unNested $ getSum <$> runEquivT id preferConstructor (go x y)
   where
     go (SignatureTypeConstructor a as) (SignatureTypeConstructor b bs) =
       unifyArguments (unifyName (TypeConstructor a) (TypeConstructor b)) as bs
@@ -224,9 +224,9 @@ unifyTypes x y =
     preferConstructor a _ =
       a
 
-notUnified :: EquivT s (TypeDescription n) (TypeDescription n) (SerialT (Writer [SignatureError])) a
+notUnified :: EquivT s (TypeDescription n) (TypeDescription n) (Nested (Writer [SignatureError])) a
 notUnified =
-  lift (emptyEffect (tell [SignatureNotUnified]))
+  lift (Nested (emptyEffect (tell [SignatureNotUnified])))
 
 signatureFunction :: NonEmpty (SignatureType n) -> SignatureType n
 signatureFunction ts =
