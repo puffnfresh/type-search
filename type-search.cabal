@@ -1,7 +1,7 @@
 cabal-version:       >=1.10
 name:                type-search
 version:             0.1.0.0
-license:             BSD-3-Clause
+license:             BSD3
 license-file:        LICENSE
 author:              Brian McKenna
 maintainer:          brian@brianmckenna.org
@@ -9,7 +9,7 @@ build-type:          Simple
 extra-source-files:  CHANGELOG.md
 
 library
-  build-depends:       base >=4.13 && <4.17
+  build-depends:       base >=4.13 && <4.22
                      , lens
                      , transformers
                      , containers
