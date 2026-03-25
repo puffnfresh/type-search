@@ -193,6 +193,8 @@ unifyTypes x y =
       unifyArguments (unifyName (TypeConstructor a) (TypeConstructor b)) as bs
     go (SignatureTypeConstructor a as) (SignatureTypeVariable b bs) =
       unifyArguments (unifyName (TypeConstructor a) (TypeVariable b)) as bs
+    go (SignatureTypeVariable a as) (SignatureTypeConstructor b bs) =
+      unifyArguments (unifyName (TypeVariable a) (TypeConstructor b)) as bs
     go (SignatureTypeVariable a as) (SignatureTypeVariable b bs) =
       unifyArguments (unifyName (TypeVariable a) (TypeVariable b)) as bs
     go (SignatureTypeFunction as a) (SignatureTypeFunction bs b) =
